@@ -1,26 +1,12 @@
-import { Button, CheckBox, GroupBox, VerticalBox, ProgressIndicator, ComboBox } from "std-widgets.slint";
+import { Button, CheckBox, GroupBox, VerticalBox, ProgressIndicator, ComboBox, LineEdit, HorizontalBox } from "std-widgets.slint";
 
 export component AppWindow inherits Window {
-    in-out property<int> counter: 42;
-    in-out property<bool> export_png: true;
-    in-out property<bool> export_pdf: false;
-    in-out property<bool> export_eps: false;
-    callback request-increase-value();
+    in-out property<string> output_dir;
+    callback show-folder-dialog();
     callback toggle-export-png(bool);
     callback toggle-export-pdf(bool);
     callback toggle-export-eps(bool);
     VerticalLayout {
-        VerticalBox {
-            Text {
-                text: "Counter: \{root.counter}";
-            }
-            Button {
-                text: "Increase value";
-                clicked => {
-                    root.request-increase-value();
-                }
-            }
-        }
         GroupBox {
             title: "Geometry:";
             VerticalLayout {
@@ -35,6 +21,20 @@ export component AppWindow inherits Window {
                 width: parent.width;
                 model: ["Page", "Drawing", "Custom"];
                 current-value: "Page";
+            }
+        }
+        HorizontalBox {
+            LineEdit {
+                input-type: text;
+                placeholder-text: "Output directory";
+                text: output_dir;
+            }
+            Button {
+                // icon: @image-url("folder-outline.svg");
+                text: "📂";
+                clicked => {
+                    root.show-folder-dialog();
+                }
             }
         }
         ProgressIndicator {

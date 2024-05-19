@@ -10,6 +10,7 @@ build = "build.rs"
 [dependencies]
 env_logger = "0.11.3"
 log = "0.4.21"
+rfd = "0.14.1"
 slint = "1.5"
 
 [build-dependencies]

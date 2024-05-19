@@ -51,10 +51,10 @@ impl InkscapeCmdBuilder {
         self
     }
 
-    // pub fn eps(mut self, enabled: bool) -> InkscapeCmdBuilder {
-    //     self.cmd.export_eps = enabled;
-    //     self
-    // }
+    pub fn eps(&mut self, enabled: bool) -> &mut Self {
+        self.cmd.export_eps = enabled;
+        self
+    }
 
     // pub fn pdf(mut self, enabled: bool) -> InkscapeCmdBuilder {
     //     self.cmd.export_pdf = enabled;
@@ -72,22 +72,40 @@ fn main() -> Result<(), slint::PlatformError> {
     let inkscape_cmd = InkscapeCmdBuilder::default();
     let cmd_arc = Arc::new(Mutex::new(inkscape_cmd));
 
-    ui.on_request_increase_value({
-        let ui_handle = ui.as_weak();
-        move || {
-            let ui = ui_handle.unwrap();
-            ui.set_counter(ui.get_counter() + 1);
-        }
-    });
     ui.on_toggle_export_png({
-        let ui_handle = ui.as_weak();
+        // let ui_handle = ui.as_weak();
+        let x = cmd_arc.clone();
         move |enabled| {
-            let ui = ui_handle.unwrap();
-            let x = cmd_arc.clone();
+            // let ui = ui_handle.unwrap();
+            // let x = arc_clone.clone();
             let mut y = x.lock().unwrap();
             let z = &y.png(enabled);
             log::debug!("{:?}", z);
             // println!("PNG: {:?}", z);
+        }
+    });
+    ui.on_toggle_export_eps({
+        // let ui_handle = ui.as_weak();
+        let x = cmd_arc.clone();
+        move |enabled| {
+            // let x = arc_clone.clone();
+            let mut y = x.lock().unwrap();
+            let z = &y.eps(enabled);
+            log::debug!("{:?}", z);
+            // println!("PNG: {:?}", z);
+        }
+    });
+    ui.on_show_folder_dialog({
+        let ui_handle = ui.as_weak();
+        move || {
+            let ui = ui_handle.unwrap();
+            let mut dialog = rfd::FileDialog::new();
+            dialog = dialog.set_title("Select output folder");
+            let folder = match dialog.pick_folder() {
+                Some(folder) => folder.display().to_string().into(),
+                None => "".into(),
+            };
+            ui.set_output_dir(folder);
         }
     });
 
