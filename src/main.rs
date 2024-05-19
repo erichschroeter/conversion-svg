@@ -67,6 +67,7 @@ impl InkscapeCmdBuilder {
 }
 
 fn main() -> Result<(), slint::PlatformError> {
+    env_logger::init();
     let ui = AppWindow::new()?;
     let inkscape_cmd = InkscapeCmdBuilder::default();
     let cmd_arc = Arc::new(Mutex::new(inkscape_cmd));
@@ -82,11 +83,11 @@ fn main() -> Result<(), slint::PlatformError> {
         let ui_handle = ui.as_weak();
         move |enabled| {
             let ui = ui_handle.unwrap();
-            let x = cmd_arc.clone(); //.lock();
+            let x = cmd_arc.clone();
             let mut y = x.lock().unwrap();
             let z = &y.png(enabled);
-            // export_png = ui.get_export_png();
-            println!("PNG: {:?}", z);
+            log::debug!("{:?}", z);
+            // println!("PNG: {:?}", z);
         }
     });
 

@@ -3,8 +3,12 @@ import { Button, CheckBox, GroupBox, VerticalBox, ProgressIndicator, ComboBox } 
 export component AppWindow inherits Window {
     in-out property<int> counter: 42;
     in-out property<bool> export_png: true;
+    in-out property<bool> export_pdf: false;
+    in-out property<bool> export_eps: false;
     callback request-increase-value();
     callback toggle-export-png(bool);
+    callback toggle-export-pdf(bool);
+    callback toggle-export-eps(bool);
     VerticalLayout {
         VerticalBox {
             Text {
@@ -21,8 +25,8 @@ export component AppWindow inherits Window {
             title: "Geometry:";
             VerticalLayout {
                 CheckBox { text: "PNG"; checked: true; toggled => { root.toggle-export-png(self.checked); } }
-                CheckBox { text: "PDF"; checked: false; }
-                CheckBox { text: "EPS"; checked: false; }
+                CheckBox { text: "PDF"; checked: false; toggled => { root.toggle-export-pdf(self.checked); } }
+                CheckBox { text: "EPS"; checked: false; toggled => { root.toggle-export-eps(self.checked); } }
             }
         }
         GroupBox {
