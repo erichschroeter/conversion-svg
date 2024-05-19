@@ -1,17 +1,42 @@
-import { Button, VerticalBox } from "std-widgets.slint";
+import { Button, CheckBox, GroupBox, VerticalBox, ProgressIndicator, ComboBox } from "std-widgets.slint";
 
 export component AppWindow inherits Window {
     in-out property<int> counter: 42;
+    in-out property<bool> export_png: true;
     callback request-increase-value();
-    VerticalBox {
-        Text {
-            text: "Counter: \{root.counter}";
-        }
-        Button {
-            text: "Increase value";
-            clicked => {
-                root.request-increase-value();
+    callback toggle-export-png(bool);
+    VerticalLayout {
+        VerticalBox {
+            Text {
+                text: "Counter: \{root.counter}";
             }
+            Button {
+                text: "Increase value";
+                clicked => {
+                    root.request-increase-value();
+                }
+            }
+        }
+        GroupBox {
+            title: "Geometry:";
+            VerticalLayout {
+                CheckBox { text: "PNG"; checked: true; toggled => { root.toggle-export-png(self.checked); } }
+                CheckBox { text: "PDF"; checked: false; }
+                CheckBox { text: "EPS"; checked: false; }
+            }
+        }
+        GroupBox {
+            title: "Export:";
+            ComboBox {
+                width: parent.width;
+                model: ["Page", "Drawing", "Custom"];
+                current-value: "Page";
+            }
+        }
+        ProgressIndicator {
+            width: parent.width;
+            height: 15px;
+            progress: 30%;
         }
     }
 }
