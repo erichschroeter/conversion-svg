@@ -1,6 +1,6 @@
 import { Button, CheckBox, GroupBox, VerticalBox, ProgressIndicator, ComboBox, LineEdit, HorizontalBox, ScrollView, ListView } from "std-widgets.slint";
 
-import { CargoView } from "treeview.slint";
+import { TreeView } from "treeview.slint";
 
 export component AppWindow inherits Window {
     min-width: 400px;
@@ -11,8 +11,8 @@ export component AppWindow inherits Window {
     callback toggle-export-pdf(bool);
     callback toggle-export-eps(bool);
     HorizontalLayout {
-        CargoView {
-
+        TreeView {
+            root_directory: "C:\\";
         }
         VerticalLayout {
             GroupBox {

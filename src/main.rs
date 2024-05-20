@@ -4,9 +4,11 @@ slint::include_modules!();
 
 #[derive(Debug)]
 struct InkscapeCmd {
+    #[allow(dead_code)]
     file_path: Option<String>,
     export_png: bool,
     export_eps: bool,
+    #[allow(dead_code)]
     export_pdf: bool,
 }
 
@@ -23,6 +25,7 @@ impl Default for InkscapeCmd {
 
 #[derive(Debug)]
 struct InkscapeCmdBuilder {
+    #[allow(dead_code)]
     file_path: Option<String>,
     cmd: InkscapeCmd,
 }
@@ -61,38 +64,31 @@ impl InkscapeCmdBuilder {
     //     self
     // }
 
-    pub fn build(self) -> InkscapeCmd {
-        self.cmd
-    }
+    // pub fn build(self) -> InkscapeCmd {
+    //     self.cmd
+    // }
 }
 
 fn main() -> Result<(), slint::PlatformError> {
     env_logger::init();
     let ui = AppWindow::new()?;
-    let inkscape_cmd = InkscapeCmdBuilder::default();
+    let inkscape_cmd = InkscapeCmdBuilder::new();
     let cmd_arc = Arc::new(Mutex::new(inkscape_cmd));
 
     ui.on_toggle_export_png({
-        // let ui_handle = ui.as_weak();
         let x = cmd_arc.clone();
         move |enabled| {
-            // let ui = ui_handle.unwrap();
-            // let x = arc_clone.clone();
             let mut y = x.lock().unwrap();
             let z = &y.png(enabled);
             log::debug!("{:?}", z);
-            // println!("PNG: {:?}", z);
         }
     });
     ui.on_toggle_export_eps({
-        // let ui_handle = ui.as_weak();
         let x = cmd_arc.clone();
         move |enabled| {
-            // let x = arc_clone.clone();
             let mut y = x.lock().unwrap();
             let z = &y.eps(enabled);
             log::debug!("{:?}", z);
-            // println!("PNG: {:?}", z);
         }
     });
     ui.on_show_folder_dialog({
@@ -106,6 +102,7 @@ fn main() -> Result<(), slint::PlatformError> {
                 None => "".into(),
             };
             ui.set_output_dir(folder);
+            // ui.set_root_directory(folder);
         }
     });
 

@@ -7,15 +7,6 @@ import {
     LineEdit, ListView, GroupBox, CheckBox
 } from "std-widgets.slint";
 
-// import { CratesCompletionData } from "crates_completion.slint";
-
-export struct Diag {
-    short: string,
-    expanded: string,
-    level: int, // 0 = other, 1 = error, 2 = warning, 3 = note
-
-}
-
 export struct Action {
     command: string,
     package: string,
@@ -28,71 +19,8 @@ component Pane inherits Rectangle {
     TouchArea {}
 }
 
-export component BuildingPane inherits Pane {
-    callback cancel <=> cancel_btn.clicked;
-    callback back <=> back_btn.clicked;
-    property <bool> is-building;
-    property status <=> status_text.text;
-    property <[Diag]> diagnostics;
-
-    VerticalBox {
-        status_text := Text { }
-
-        ListView {
-            viewport_width: self.width;
-            for diagnostic in diagnostics : TouchArea {
-                property<bool> expanded;
-                clicked => { expanded = !expanded }
-                enabled: diagnostic.expanded != "";
-                animate height { duration: 150ms; easing: ease; }
-                height: b.preferred_height;
-                b := HorizontalBox {
-                    if (parent.enabled) : Text {
-                        text: !expanded ? "▶": "▼";
-                    }
-                    Text {
-                        horizontal_stretch: 1;
-                        color: {
-                            diagnostic.level == 1 ? #a44 :
-                            diagnostic.level == 2 ? #aa4 :
-                            diagnostic.level == 3 ? #44a :
-                            #444;
-                        };
-                        property <string> level_txt: {
-                            diagnostic.level == 1 ? "error: " :
-                            diagnostic.level == 2 ? "warning: " :
-                            diagnostic.level == 3 ? "info: " :
-                            "";
-                        }
-                        text: !expanded ? (level_txt + diagnostic.short) : diagnostic.expanded;
-                        wrap: word_wrap;
-
-                    }
-                }
-            }
-        }
-        HorizontalBox {
-            alignment: space_between;
-            cancel_btn := Button {
-                enabled: is-building;
-                text: "❌ Cancel";
-                height: parent.min_height;
-            }
-            back_btn := Button {
-                enabled: !is-building;
-                text: "🔙 Back";
-                height: parent.min_height;
-            }
-
-        }
-    }
-}
-
-export struct DependencyNode {
-    crate_name: string,
-    version: string,
-    duplicated: bool,
-    outdated: bool,
+export struct TreeNode {
+    text: string,
     dep_kind: string,
     indentation: int,
     has_children: bool,
@@ -100,11 +28,11 @@ export struct DependencyNode {
     parent_package: string,
 }
 
-export global DependencyData {
-    out property <[DependencyNode]> model;
-    // the parameter is the parent_package and the crate_name, and the dependency type
+export global TreeData {
+    out property <[TreeNode]> model;
+    // the parameter is the parent_package and the text, and the dependency type
     callback request_upgrade(string, string, string);
-    // the parameter is the parent_package and the crate_name, and the dependency type
+    // the parameter is the parent_package and the text, and the dependency type
     callback remove(string, string, string);
     // crate name, and dependency type
     callback add_dependency(string, string);
@@ -112,118 +40,38 @@ export global DependencyData {
     out property <bool> package-selected : true;
 }
 
-component DepTreePane inherits Pane {
-    callback back <=> back_btn.clicked;
-
-    property <[DependencyNode]> model: DependencyData.model;
+component TreePane inherits Pane {
+    property <[TreeNode]> model: TreeData.model;
     property <bool> completion_shown;
+    min-height: 40px;
 
-    GridBox {
-        Row {
-            install-le := LineEdit {
-                z: 1; // put on top because of the completion
-                enabled: DependencyData.package-selected;
-                placeholder-text: DependencyData.package-selected ? "Dependency to add" : "Select a package to add a dependency";
-                // accepted(text) => {
-                //     DependencyData.add-dependency(install-le.text, "");
-                //     self.text = "";
-                //     completion_shown = false;
-                // }
-                // edited => {
-                //     CratesCompletionData.update_completion(text);
-                //     completion_shown = text != "";
-                // }
-                // if completion_shown && CratesCompletionData.completions.length > 0 :
-                // Rectangle {
-                //     background: white;
-                //     y: parent.height + 6px;
-                //     height: min(root.height - install-le.y - install-le.height - 12px, inner_layout.preferred-height);
-                //     drop-shadow-color: #8888;
-                //     drop-shadow-offset-x: 1px;
-                //     drop-shadow-offset-y: 1px;
-                //     drop-shadow-blur: 5px;
-                //     border-radius: 5px;
-                //     clip: true;
-                //     inner_layout := VerticalBox {
-                //         width: 100%;
-                //         alignment: end;
-                //         for crate in CratesCompletionData.completions: Rectangle {
-                //             background: inner-touch.has-hover ? lightgray : transparent;
-                //             height: inner_text.height;
-                //             inner_text := Text {
-                //                 width: 100%;
-                //                 text: crate;
-                //                 color: black;
-                //                 overflow: elide;
-                //             }
-                //             inner_touch := TouchArea {
-                //                 clicked => {
-                //                     install-le.text = crate;
-                //                     completion_shown = false;
-                //                 }
-                //             }
-                //         }
-                //     }
-                // }
-            }
-            Button {
-                text: "➕ Add";
-                clicked => {
-                    DependencyData.add-dependency(install-le.text, "");
-                    install-le.text = "";
-                    completion_shown = false;
+    ListView {
+        for node in model : HorizontalLayout {
+            width: self.preferred-width;
+            spacing: 5px;
+            Rectangle { width: node.indentation * 20px; }
+            Text {
+                text: !node.has_children ? "" : node.open ? "⊟" : "⊞";
+                horizontal-alignment: right;
+                vertical-alignment: center;
+                width: 20px;
+                TouchArea {
+                    clicked => { node.open = !node.open; }
                 }
             }
-        }
-        ListView {
-            colspan: 2;
-            for dep in model : HorizontalLayout {
-                width: self.preferred-width;
-                spacing: 5px;
-                Rectangle { width: dep.indentation * 20px; }
-                Text {
-                    text: !dep.has_children ? "" : dep.open ? "⊟" : "⊞";
-                    horizontal-alignment: right;
-                    vertical-alignment: center;
-                    width: 20px;
-                    TouchArea {
-                        clicked => { dep.open = !dep.open; }
-                    }
-                }
-                crate_name := Text {
-                    text: dep.crate_name;
-                    vertical-alignment: center;
-                }
-                Text {
-                    text: dep.version;
-                    color: dep.outdated ? red : crate_name.color;
-                    vertical-alignment: center;
-                }
-                if (dep.dep_kind != "") : Text {
-                    text: " (\{dep.dep_kind})";
-                    color: gray;
-                    vertical-alignment: center;
-                }
-                if (dep.duplicated) : Text {
-                    text: "(duplicated)";
-                    vertical-alignment: center;
-                }
-                if (dep.outdated && dep.indentation == 1) : Button {
-                    clicked => { DependencyData.request_upgrade(dep.parent_package, dep.crate_name, dep.dep_kind); }
-                    text: "🔄 Upgrade";
-                    min-height: crate_name.preferred_height * 1.25;
-                }
-                if (dep.indentation == 1) : Button {
-                    clicked => { DependencyData.remove(dep.parent_package, dep.crate_name, dep.dep_kind); }
-                    text: "🗑️ Remove";
-                    min-height: crate_name.preferred_height * 1.25;
-                }
+            text := Text {
+                text: node.text;
+                vertical-alignment: center;
             }
-        }
-        Row {
-            back_btn:=Button {
-                col: 1;
-                text: "🔙 Back";
+            if (node.dep_kind != "") : Text {
+                text: " (\{node.dep_kind})";
+                color: gray;
+                vertical-alignment: center;
+            }
+            if (node.indentation == 1) : Button {
+                clicked => { TreeData.remove(node.parent_package, node.text, node.dep_kind); }
+                text: "🗑️ Remove";
+                min-height: text.preferred_height * 1.25;
             }
         }
     }
@@ -231,18 +79,18 @@ component DepTreePane inherits Pane {
 
 
 /*
-Debug_DepTreePane := Window {
+Debug_TreePane := Window {
     title: "Cargo UI";
     preferred_height: 500px;
     preferred_width: 300px;
-    DepTreePane{
+    TreePane{
         model: [
-        { crate_name: "AAA", version: "0.1", indentation: 0, has_children: true, open: true },
-        { crate_name: "BBB", version: "0.1", indentation: 1, has_children: false, open: false, },
-        { crate_name: "CCC", version: "0.1", indentation: 1, has_children: false, open: false, outdated: true, },
-        { crate_name: "DDD", version: "0.1", indentation: 1, has_children: true , open: true, },
-        { crate_name: "EEE", version: "0.1", indentation: 2, has_children: true , open: false, },
-        { crate_name: "FFF", version: "0.1", indentation: 1, has_children: false , open: false, },
+        { text: "AAA", indentation: 0, has_children: true, open: true },
+        { text: "BBB", indentation: 1, has_children: false, open: false, },
+        { text: "CCC", indentation: 1, has_children: false, open: false, },
+        { text: "DDD", indentation: 1, has_children: true , open: true, },
+        { text: "EEE", indentation: 2, has_children: true , open: false, },
+        { text: "FFF", indentation: 1, has_children: false , open: false, },
 
     ];
     }
@@ -255,7 +103,7 @@ export struct Feature {
     enabled_by_default: bool,
 }
 
-export component CargoView inherits GridBox {
+export component TreeView inherits GridBox {
     // Public properties
     property <string> status: "Cargo UI";
     property <[string]> packages;
@@ -264,15 +112,11 @@ export component CargoView inherits GridBox {
     property <[string]> extra-run;
     property <[string]> extra-test;
     callback action(Action);
-    callback cancel;
-    property <bool> is-building : false;
-    property <[Diag]> diagnostics;
-    property <bool> workspace-valid : true;
-    property <string> manifest-path <=> le_manifest.text;
-    callback reload-manifest(string);
-    callback show-open-dialog;
+    in-out property <string> root_directory <=> le_rootdir.text;
+    callback reload-tree(string);
+    callback show-folder-dialog;
     property <bool> build-pane-visible;
-    property <[DependencyNode]> deptree;
+    property <[TreeNode]> deptree;
     property <bool> has-features;
     property <[Feature]> package-features;
     property <bool> enable-default-features;
@@ -284,71 +128,42 @@ export component CargoView inherits GridBox {
     property <bool> deptree-pane-visible;
 
     Row {
-        Text { text: "Manifest:"; vertical-alignment: center; horizontal-alignment: right; }
         HorizontalLayout {
+        vertical_stretch: 0;
             colspan: 3;
-            le_manifest := LineEdit {
-                accepted => { root.reload-manifest(le_manifest.text); }
+            le_rootdir := LineEdit {
+                accepted => { root.reload-tree(le_rootdir.text); }
                 horizontal_stretch: 1;
             }
             open_button := Button {
                 text: "📂";
-                clicked => { root.show-open-dialog(); }
+                clicked => { root.show-folder-dialog(); }
             }
         }
     }
 
     Row {
-        HorizontalLayout {
-            if allow-package-selection: Text {
-                text: "Package:"; vertical-alignment: center; horizontal-alignment: right;
-            }
-        }
-        HorizontalLayout {
-            if allow-package-selection: ComboBox {
-                model: packages;
-                enabled: root.workspace-valid;
-                current_value <=> current-package;
-                selected(pkg) => { root.package-selected(pkg); }
-            }
+        TreePane {
+            vertical_stretch: 1;
         }
     }
-
     Row {
-        Rectangle { height: 40px; }
-    }
-
-
-    Row {
-        Button {
-            colspan: 2;
-            text: "🌳 Show Dependencies";
-            clicked => { deptree-pane-visible = true; }
+        Text {
+            vertical-stretch: 0;
+            text: "Tree Pane";
         }
     }
+    // deptree := Rectangle {
+    //     row: 2;
+    //     colspan: 4;
+    //     rowspan: 8;
+    //     property <float> animate_opacity: deptree-pane-visible ? 1 : 0;
+    //     animate animate_opacity { duration: 250ms; easing: ease; }
 
-    Row {
-        Rectangle { min-height: 40px; }
-    }
-
-    Text {
-        colspan: 4;
-        text: status;
-        wrap: word_wrap;
-        overflow: elide;
-    }
-
-    deptree := Rectangle {
-        row: 2;
-        colspan: 4;
-        rowspan: 8;
-        property <float> animate_opacity: deptree-pane-visible ? 1 : 0;
-        animate animate_opacity { duration: 250ms; easing: ease; }
-
-        if (deptree.animate_opacity > 0.01) : DepTreePane {
-                        background: root.background;
-            opacity: parent.animate_opacity;
-            back => { deptree-pane-visible = true; }
-        }
-    }
+    //     if (deptree.animate_opacity > 0.01) : TreePane {
+    //                     background: root.background;
+    //         opacity: parent.animate_opacity;
+    //         back => { deptree-pane-visible = true; }
+    //     }
+    // }
 }
