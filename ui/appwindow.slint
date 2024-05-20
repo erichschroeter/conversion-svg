@@ -1,46 +1,56 @@
-import { Button, CheckBox, GroupBox, VerticalBox, ProgressIndicator, ComboBox, LineEdit, HorizontalBox } from "std-widgets.slint";
+import { Button, CheckBox, GroupBox, VerticalBox, ProgressIndicator, ComboBox, LineEdit, HorizontalBox, ScrollView, ListView } from "std-widgets.slint";
+
+import { CargoView } from "treeview.slint";
 
 export component AppWindow inherits Window {
+    min-width: 400px;
+    min-height: 400px;
     in-out property<string> output_dir;
     callback show-folder-dialog();
     callback toggle-export-png(bool);
     callback toggle-export-pdf(bool);
     callback toggle-export-eps(bool);
-    VerticalLayout {
-        GroupBox {
-            title: "Geometry:";
-            VerticalLayout {
-                CheckBox { text: "PNG"; checked: true; toggled => { root.toggle-export-png(self.checked); } }
-                CheckBox { text: "PDF"; checked: false; toggled => { root.toggle-export-pdf(self.checked); } }
-                CheckBox { text: "EPS"; checked: false; toggled => { root.toggle-export-eps(self.checked); } }
-            }
+    HorizontalLayout {
+        CargoView {
+
         }
-        GroupBox {
-            title: "Export:";
-            ComboBox {
-                width: parent.width;
-                model: ["Page", "Drawing", "Custom"];
-                current-value: "Page";
-            }
-        }
-        HorizontalBox {
-            LineEdit {
-                input-type: text;
-                placeholder-text: "Output directory";
-                text: output_dir;
-            }
-            Button {
-                // icon: @image-url("folder-outline.svg");
-                text: "📂";
-                clicked => {
-                    root.show-folder-dialog();
+        VerticalLayout {
+            GroupBox {
+                title: "Geometry:";
+                VerticalLayout {
+                    CheckBox { text: "PNG"; checked: true; toggled => { root.toggle-export-png(self.checked); } }
+                    CheckBox { text: "PDF"; checked: false; toggled => { root.toggle-export-pdf(self.checked); } }
+                    CheckBox { text: "EPS"; checked: false; toggled => { root.toggle-export-eps(self.checked); } }
                 }
             }
-        }
-        ProgressIndicator {
-            width: parent.width;
-            height: 15px;
-            progress: 30%;
+            GroupBox {
+                title: "Export:";
+                VerticalLayout {
+                    ComboBox {
+                        height: 35px;
+                        model: ["Page", "Drawing", "Custom"];
+                        current-value: "Page";
+                    }
+                }
+            }
+            HorizontalBox {
+                LineEdit {
+                    input-type: text;
+                    placeholder-text: "Output directory";
+                    text: output_dir;
+                }
+                Button {
+                    // icon: @image-url("folder-outline.svg");
+                    text: "📂";
+                    clicked => {
+                        root.show-folder-dialog();
+                    }
+                }
+            }
+            ProgressIndicator {
+                height: 15px;
+                progress: 30%;
+            }
         }
     }
 }
