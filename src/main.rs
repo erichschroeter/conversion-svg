@@ -3,7 +3,7 @@ use std::sync::{Arc, Mutex};
 slint::include_modules!();
 
 #[derive(Debug)]
-struct InkscapeCmd {
+struct InkscapeArgs {
     #[allow(dead_code)]
     file_path: Option<String>,
     export_png: bool,
@@ -12,9 +12,9 @@ struct InkscapeCmd {
     export_pdf: bool,
 }
 
-impl Default for InkscapeCmd {
+impl Default for InkscapeArgs {
     fn default() -> Self {
-        InkscapeCmd {
+        InkscapeArgs {
             file_path: None,
             export_png: false,
             export_eps: false,
@@ -24,24 +24,24 @@ impl Default for InkscapeCmd {
 }
 
 #[derive(Debug)]
-struct InkscapeCmdBuilder {
+struct InkscapeArgsBuilder {
     #[allow(dead_code)]
     file_path: Option<String>,
-    cmd: InkscapeCmd,
+    cmd: InkscapeArgs,
 }
 
-impl Default for InkscapeCmdBuilder {
+impl Default for InkscapeArgsBuilder {
     fn default() -> Self {
-        InkscapeCmdBuilder {
+        InkscapeArgsBuilder {
             file_path: None,
-            cmd: InkscapeCmd::default(),
+            cmd: InkscapeArgs::default(),
         }
     }
 }
 
-impl InkscapeCmdBuilder {
+impl InkscapeArgsBuilder {
     pub fn new() -> Self {
-        InkscapeCmdBuilder::default()
+        InkscapeArgsBuilder::default()
     }
 
     // pub fn file(mut self, file_path: &str) -> Self {
@@ -59,12 +59,12 @@ impl InkscapeCmdBuilder {
         self
     }
 
-    // pub fn pdf(mut self, enabled: bool) -> InkscapeCmdBuilder {
+    // pub fn pdf(mut self, enabled: bool) -> InkscapeArgsBuilder {
     //     self.cmd.export_pdf = enabled;
     //     self
     // }
 
-    // pub fn build(self) -> InkscapeCmd {
+    // pub fn build(self) -> InkscapeArgs {
     //     self.cmd
     // }
 }
@@ -72,22 +72,22 @@ impl InkscapeCmdBuilder {
 fn main() -> Result<(), slint::PlatformError> {
     env_logger::init();
     let ui = AppWindow::new()?;
-    let inkscape_cmd = InkscapeCmdBuilder::new();
+    let inkscape_cmd = InkscapeArgsBuilder::new();
     let cmd_arc = Arc::new(Mutex::new(inkscape_cmd));
 
     ui.on_toggle_export_png({
-        let x = cmd_arc.clone();
+        let inkscape_args = cmd_arc.clone();
         move |enabled| {
-            let mut y = x.lock().unwrap();
-            let z = &y.png(enabled);
+            let mut inkscape_args = inkscape_args.lock().unwrap();
+            let z = &inkscape_args.png(enabled);
             log::debug!("{:?}", z);
         }
     });
     ui.on_toggle_export_eps({
-        let x = cmd_arc.clone();
+        let inkscape_args = cmd_arc.clone();
         move |enabled| {
-            let mut y = x.lock().unwrap();
-            let z = &y.eps(enabled);
+            let mut inkscape_args = inkscape_args.lock().unwrap();
+            let z = &inkscape_args.eps(enabled);
             log::debug!("{:?}", z);
         }
     });
@@ -103,6 +103,14 @@ fn main() -> Result<(), slint::PlatformError> {
             };
             ui.set_output_dir(folder);
             // ui.set_root_directory(folder);
+        }
+    });
+    ui.on_execute_inkscape({
+        let inkscape_args = cmd_arc.clone();
+        move || {
+            let inkscape_args = inkscape_args.lock().unwrap();
+            let args = &inkscape_args;
+            log::info!("Executing: {:?}", args);
         }
     });
 
