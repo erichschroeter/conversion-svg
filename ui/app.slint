@@ -2,10 +2,13 @@ import { Button, CheckBox, GroupBox, VerticalBox, ProgressIndicator, ComboBox, L
 
 import { TreeView } from "treeview.slint";
 
-export component AppWindow inherits Window {
+export component AppUI inherits Window {
     min-width: 400px;
     min-height: 400px;
     in-out property<string> output_dir;
+    in-out property<bool> export_png: true;
+    in-out property<bool> export_pdf: false;
+    in-out property<bool> export_eps: false;
     callback show-folder-dialog();
     callback execute-inkscape();
     callback toggle-export-png(bool);
@@ -21,9 +24,9 @@ export component AppWindow inherits Window {
                 GroupBox {
                     title: "Geometry:";
                     VerticalLayout {
-                        CheckBox { text: "PNG"; checked: true; toggled => { root.toggle-export-png(self.checked); } }
-                        CheckBox { text: "PDF"; checked: false; toggled => { root.toggle-export-pdf(self.checked); } }
-                        CheckBox { text: "EPS"; checked: false; toggled => { root.toggle-export-eps(self.checked); } }
+                        CheckBox { text: "PNG"; checked: export_png; toggled => { root.toggle-export-png(self.checked); } }
+                        CheckBox { text: "PDF"; checked: export_pdf; toggled => { root.toggle-export-pdf(self.checked); } }
+                        CheckBox { text: "EPS"; checked: export_eps; toggled => { root.toggle-export-eps(self.checked); } }
                     }
                 }
                 GroupBox {

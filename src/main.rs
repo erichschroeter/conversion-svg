@@ -1,6 +1,11 @@
 use std::sync::{Arc, Mutex};
 
-slint::include_modules!();
+mod inkscape;
+
+mod generated_code {
+    slint::include_modules!();
+}
+pub use generated_code::*;
 
 #[derive(Clone, Debug)]
 struct InkscapeArgs {
@@ -108,15 +113,23 @@ mod tests {
 
     #[test]
     fn export_to_all() {
-        let args = InkscapeArgsBuilder::new().png(true).pdf(true).eps(true).build();
+        let args = InkscapeArgsBuilder::new()
+            .png(true)
+            .pdf(true)
+            .eps(true)
+            .build();
         assert_eq!("inkscape --export-type=png,pdf,eps", format!("{}", args));
     }
 }
 
-fn main() -> Result<(), slint::PlatformError> {
+// fn main() -> Result<(), slint::PlatformError> {
+fn main() {
     env_logger::init();
-    let ui = AppWindow::new()?;
-    let inkscape_cmd = InkscapeArgsBuilder::new();
+    let ui = AppUI::new().unwrap();
+    let inkscape_worker = inkscape::InkscapeWorker::new(&ui);
+
+    let mut inkscape_cmd = InkscapeArgsBuilder::new();
+    inkscape_cmd.png(ui.get_export_png()).pdf(ui.get_export_pdf()).eps(ui.get_export_eps());
     let cmd_arc = Arc::new(Mutex::new(inkscape_cmd));
 
     ui.on_toggle_export_png({
@@ -154,9 +167,10 @@ fn main() -> Result<(), slint::PlatformError> {
         move || {
             let inkscape_args = inkscape_args.lock().unwrap();
             let args = &inkscape_args;
-            log::info!("Executing: {:?}", args);
+            log::info!("Executing: {}", args.build());
         }
     });
 
-    ui.run()
+    ui.run().unwrap();
+    inkscape_worker.join().unwrap();
 }
