@@ -2,13 +2,11 @@ use std::sync::{Arc, Mutex};
 
 slint::include_modules!();
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 struct InkscapeArgs {
-    #[allow(dead_code)]
     file_path: Option<String>,
     export_png: bool,
     export_eps: bool,
-    #[allow(dead_code)]
     export_pdf: bool,
 }
 
@@ -19,6 +17,22 @@ impl Default for InkscapeArgs {
             export_png: false,
             export_eps: false,
             export_pdf: false,
+        }
+    }
+}
+
+impl std::fmt::Display for InkscapeArgs {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "inkscape")?;
+        match (self.export_png, self.export_pdf, self.export_eps) {
+            (true, true, true) => write!(f, " --export-type=png,pdf,eps"),
+            (true, true, false) => write!(f, " --export-type=png,pdf"),
+            (true, false, true) => write!(f, " --export-type=png,eps"),
+            (true, false, false) => write!(f, " --export-type=png"),
+            (false, true, true) => write!(f, " --export-type=pdf,eps"),
+            (false, true, false) => write!(f, " --export-type=pdf"),
+            (false, false, true) => write!(f, " --export-type=eps"),
+            (false, false, false) => write!(f, ""),
         }
     }
 }
@@ -59,14 +73,44 @@ impl InkscapeArgsBuilder {
         self
     }
 
-    // pub fn pdf(mut self, enabled: bool) -> InkscapeArgsBuilder {
-    //     self.cmd.export_pdf = enabled;
-    //     self
-    // }
+    pub fn pdf(&mut self, enabled: bool) -> &mut Self {
+        self.cmd.export_pdf = enabled;
+        self
+    }
 
-    // pub fn build(self) -> InkscapeArgs {
-    //     self.cmd
-    // }
+    #[allow(dead_code)]
+    pub fn build(&self) -> InkscapeArgs {
+        self.cmd.clone()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn export_to_png() {
+        let args = InkscapeArgsBuilder::new().png(true).build();
+        assert_eq!("inkscape --export-type=png", format!("{}", args));
+    }
+
+    #[test]
+    fn export_to_pdf() {
+        let args = InkscapeArgsBuilder::new().pdf(true).build();
+        assert_eq!("inkscape --export-type=pdf", format!("{}", args));
+    }
+
+    #[test]
+    fn export_to_eps() {
+        let args = InkscapeArgsBuilder::new().eps(true).build();
+        assert_eq!("inkscape --export-type=eps", format!("{}", args));
+    }
+
+    #[test]
+    fn export_to_all() {
+        let args = InkscapeArgsBuilder::new().png(true).pdf(true).eps(true).build();
+        assert_eq!("inkscape --export-type=png,pdf,eps", format!("{}", args));
+    }
 }
 
 fn main() -> Result<(), slint::PlatformError> {
