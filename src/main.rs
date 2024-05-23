@@ -1,4 +1,4 @@
-use std::sync::{Arc, Mutex};
+use std::{path::PathBuf, process::CommandArgs, sync::{Arc, Mutex}};
 
 mod inkscape;
 
@@ -7,8 +7,28 @@ mod generated_code {
 }
 pub use generated_code::*;
 
+#[derive(Debug)]
+pub struct InkscapeCmd {
+    exe_path: PathBuf,
+    args: InkscapeArgs,
+}
+
+impl InkscapeCmd {
+    pub fn new(exe_path: PathBuf, args: InkscapeArgs) -> Self {
+        Self { exe_path, args }
+    }
+}
+
+impl From<std::process::Command> for InkscapeCmd {
+    fn from(cmd: std::process::Command) -> Self {
+        let exe_path = cmd.get_program().to_owned();
+        let args = cmd.get_args().into();
+        Self { exe_path: exe_path.into(), args }
+    }
+}
+
 #[derive(Clone, Debug)]
-struct InkscapeArgs {
+pub struct InkscapeArgs {
     file_path: Option<String>,
     export_png: bool,
     export_eps: bool,
@@ -42,8 +62,25 @@ impl std::fmt::Display for InkscapeArgs {
     }
 }
 
+impl<'a> From<std::process::CommandArgs<'a>> for InkscapeArgs {
+    fn from(args: std::process::CommandArgs) -> Self {
+        let mut cmd = InkscapeArgs::default();
+        for arg in args {
+            match arg.to_str() {
+                Some("--export-type=png") => cmd.export_png = true,
+                Some("--export-eps") => cmd.export_eps = true,
+                Some("--export-pdf") => cmd.export_pdf = true,
+                _ => {
+                    cmd.file_path = Some(arg.to_str().unwrap().to_owned());
+                }
+            }
+        }
+        cmd
+    }
+}
+
 #[derive(Debug)]
-struct InkscapeArgsBuilder {
+pub struct InkscapeArgsBuilder {
     #[allow(dead_code)]
     file_path: Option<String>,
     cmd: InkscapeArgs,
@@ -119,6 +156,14 @@ mod tests {
             .eps(true)
             .build();
         assert_eq!("inkscape --export-type=png,pdf,eps", format!("{}", args));
+    }
+
+    #[test]
+    fn from_command_args_into_inkscape_args() {
+        let mut cmd = std::process::Command::new("inkscape");
+        cmd.arg("--export-type=png");
+        let args = InkscapeArgs::from(cmd.get_args());
+        assert!(args.export_png);
     }
 }
 
