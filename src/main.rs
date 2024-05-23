@@ -1,4 +1,4 @@
-use std::{path::PathBuf, process::CommandArgs, sync::{Arc, Mutex}};
+use std::{path::PathBuf, sync::{Arc, Mutex}};
 
 mod inkscape;
 
@@ -6,6 +6,7 @@ mod generated_code {
     slint::include_modules!();
 }
 pub use generated_code::*;
+use regex::Regex;
 
 #[derive(Debug)]
 pub struct InkscapeCmd {
@@ -29,7 +30,8 @@ impl From<std::process::Command> for InkscapeCmd {
 
 #[derive(Clone, Debug)]
 pub struct InkscapeArgs {
-    file_path: Option<String>,
+    file_path_input: Option<String>,
+    // file_path_output: Option<String>,
     export_png: bool,
     export_eps: bool,
     export_pdf: bool,
@@ -38,7 +40,8 @@ pub struct InkscapeArgs {
 impl Default for InkscapeArgs {
     fn default() -> Self {
         InkscapeArgs {
-            file_path: None,
+            file_path_input: None,
+            // file_path_output: None,
             export_png: false,
             export_eps: false,
             export_pdf: false,
@@ -64,14 +67,18 @@ impl std::fmt::Display for InkscapeArgs {
 
 impl<'a> From<std::process::CommandArgs<'a>> for InkscapeArgs {
     fn from(args: std::process::CommandArgs) -> Self {
+        let re_export_type = Regex::new(r"--export-type=(?<types>.*)").unwrap();
         let mut cmd = InkscapeArgs::default();
         for arg in args {
-            match arg.to_str() {
-                Some("--export-type=png") => cmd.export_png = true,
-                Some("--export-eps") => cmd.export_eps = true,
-                Some("--export-pdf") => cmd.export_pdf = true,
-                _ => {
-                    cmd.file_path = Some(arg.to_str().unwrap().to_owned());
+            if let Some(caps) = re_export_type.captures(arg.to_str().unwrap()) {
+                let types = caps.name("types").unwrap().as_str();
+                for t in types.split(",") {
+                    match t {
+                        "png" => cmd.export_png = true,
+                        "eps" => cmd.export_eps = true,
+                        "pdf" => cmd.export_pdf = true,
+                        _ => {}
+                    }
                 }
             }
         }
@@ -82,14 +89,14 @@ impl<'a> From<std::process::CommandArgs<'a>> for InkscapeArgs {
 #[derive(Debug)]
 pub struct InkscapeArgsBuilder {
     #[allow(dead_code)]
-    file_path: Option<String>,
+    file_path_input: Option<String>,
     cmd: InkscapeArgs,
 }
 
 impl Default for InkscapeArgsBuilder {
     fn default() -> Self {
         InkscapeArgsBuilder {
-            file_path: None,
+            file_path_input: None,
             cmd: InkscapeArgs::default(),
         }
     }
@@ -100,10 +107,10 @@ impl InkscapeArgsBuilder {
         InkscapeArgsBuilder::default()
     }
 
-    // pub fn file(mut self, file_path: &str) -> Self {
-    //     self.cmd.file_path = Some(file_path.to_owned());
-    //     self
-    // }
+    pub fn input_file(mut self, file_path_input: &str) -> Self {
+        self.cmd.file_path_input = Some(file_path_input.to_owned());
+        self
+    }
 
     pub fn png(&mut self, enabled: bool) -> &mut Self {
         self.cmd.export_png = enabled;
@@ -159,11 +166,21 @@ mod tests {
     }
 
     #[test]
-    fn from_command_args_into_inkscape_args() {
+    fn from_command_args_with_export_type_png() {
         let mut cmd = std::process::Command::new("inkscape");
         cmd.arg("--export-type=png");
         let args = InkscapeArgs::from(cmd.get_args());
         assert!(args.export_png);
+    }
+
+    #[test]
+    fn from_command_args_with_export_type_png_and_pdf() {
+        let mut cmd = std::process::Command::new("inkscape");
+        cmd.arg("--export-type=eps,png,pdf");
+        let args = InkscapeArgs::from(cmd.get_args());
+        assert!(args.export_png);
+        assert!(args.export_pdf);
+        assert!(args.export_eps);
     }
 }
 
@@ -208,11 +225,13 @@ fn main() {
         }
     });
     ui.on_execute_inkscape({
-        let inkscape_args = cmd_arc.clone();
+        let inkscape_tx = inkscape_worker.channel.clone();
+        // let inkscape_args = cmd_arc.clone();
         move || {
-            let inkscape_args = inkscape_args.lock().unwrap();
-            let args = &inkscape_args;
-            log::info!("Executing: {}", args.build());
+            // let inkscape_args = inkscape_args.lock().unwrap();
+            // let args = &inkscape_args;
+            log::info!("Sending InkscapeMessage::Export");
+            inkscape_tx.send(inkscape::InkscapeMessage::Export).unwrap()
         }
     });
 

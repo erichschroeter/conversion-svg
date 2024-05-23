@@ -67,7 +67,7 @@ async fn run_inkscape(handle: slint::Weak<AppUI>) {
     let args = InkscapeArgsBuilder::new();
     // let mut cmd = Command::new("inkscape");
     // cmd.arg("--export-type=png");
-    // cmd.arg(args.file_path.as_ref().unwrap());
+    // cmd.arg(args.file_path_input.as_ref().unwrap());
     // cmd.arg("--export-filename=test.png");
     // let _ = cmd.spawn();
     // let _ = cmd.wait();

@@ -932,6 +932,7 @@ dependencies = [
  "env_logger",
  "futures",
  "log",
+ "regex",
  "rfd",
  "slint",
  "slint-build",
