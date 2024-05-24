@@ -193,25 +193,19 @@ async fn inkscape_worker_loop(
     mut rx: UnboundedReceiver<InkscapeMessage>,
     handle: slint::Weak<AppUI>,
 ) {
-// ) -> tokio::io::Result<()> {
-    // TODO search for Inkscape on the PATH or via known installation locations
-    // let find_exe_result = tokio::task::spawn(find_inkscape_executable()).await;
     match tokio::task::spawn(find_inkscape_executable()).await {
         Err(e) => {
-            log::error!("inkscape_worker_loop: find_inkscape_executable failed: {}", e);
+            log::error!("Failed while searching for Inkscape: {}", e);
             return;
         }
         Ok(None) => {
-            log::error!("inkscape_worker_loop: find_inkscape_executable failed: not found");
+            log::error!("Failed to find Inkscape");
             return;
         }
         Ok(Some(exe_path)) => {
             log::info!("Inkscape executable found: {:?}", exe_path);
         }
     }
-    // log::warn!("inkscape_worker_loop: {:?}", find_exe_result);
-    // let run_inkscape_future = Fuse::terminated();
-    // pin_mut!(run_inkscape_future);
     loop {
         let m = rx.recv().await;
         match m {
