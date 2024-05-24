@@ -1,4 +1,6 @@
-use crate::{InkscapeArgs, InkscapeArgsBuilder};
+use std::path::Path;
+
+use crate::{InkscapeArgs, InkscapeArgsBuilder, InkscapeCmd};
 
 use super::AppUI;
 use futures::{future::{Fuse, FusedFuture, FutureExt}, pin_mut, select};
@@ -44,7 +46,6 @@ async fn inkscape_worker_loop(
     handle: slint::Weak<AppUI>,
 ) {
 // ) -> tokio::io::Result<()> {
-    let inkscape_handle = tokio::task::spawn(run_inkscape(handle.clone()));
     // let run_inkscape_future = Fuse::terminated();
     // pin_mut!(run_inkscape_future);
     loop {
@@ -53,10 +54,11 @@ async fn inkscape_worker_loop(
             None => return,
             Some(InkscapeMessage::Export) => {
                 println!("Exporting...");
-                return;
+                let _inkscape_handle = tokio::task::spawn(run_inkscape(handle.clone()));
+                // return;
             },
             Some(InkscapeMessage::Quit) => {
-                inkscape_handle.abort();
+                // inkscape_handle.abort();
                 return;
             },
         }
@@ -71,5 +73,6 @@ async fn run_inkscape(handle: slint::Weak<AppUI>) {
     // cmd.arg("--export-filename=test.png");
     // let _ = cmd.spawn();
     // let _ = cmd.wait();
-    println!("Executing {}", args.build());
+    let cmd = InkscapeCmd::new(Path::new("inkscape").into(), args.build());
+    cmd.exec();
 }

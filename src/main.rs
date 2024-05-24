@@ -18,6 +18,30 @@ impl InkscapeCmd {
     pub fn new(exe_path: PathBuf, args: InkscapeArgs) -> Self {
         Self { exe_path, args }
     }
+
+    pub fn as_command(&self) -> std::process::Command {
+        let mut cmd = std::process::Command::new(&self.exe_path);
+        match (self.args.export_png, self.args.export_pdf, self.args.export_eps) {
+            (true, true, true)   => cmd.arg("--export-type=png,pdf,eps"),
+            (true, true, false)  => cmd.arg("--export-type=png,pdf"),
+            (true, false, true)  => cmd.arg("--export-type=png,eps"),
+            (true, false, false) => cmd.arg("--export-type=png"),
+            (false, true, true)  => cmd.arg("--export-type=pdf,eps"),
+            (false, true, false) => cmd.arg("--export-type=pdf"),
+            (false, false, true) => cmd.arg("--export-type=eps"),
+            (false, false, false) => cmd.arg(""),
+        };
+        if let Some(input_path) = &self.args.file_path_input {
+            cmd.arg(input_path);
+        }
+        cmd
+    }
+
+    pub fn exec(&self) {
+        let mut cmd = self.as_command();
+        log::debug!("RUNNING!");
+        cmd.spawn().expect("Failed to execute inkscape");
+    }
 }
 
 impl From<std::process::Command> for InkscapeCmd {
