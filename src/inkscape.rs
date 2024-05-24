@@ -1,4 +1,4 @@
-use std::path::{Path, PathBuf};
+use std::{env, path::{Path, PathBuf}};
 use regex::Regex;
 
 use super::AppUI;
@@ -195,6 +195,21 @@ async fn inkscape_worker_loop(
 ) {
 // ) -> tokio::io::Result<()> {
     // TODO search for Inkscape on the PATH or via known installation locations
+    // let find_exe_result = tokio::task::spawn(find_inkscape_executable()).await;
+    match tokio::task::spawn(find_inkscape_executable()).await {
+        Err(e) => {
+            log::error!("inkscape_worker_loop: find_inkscape_executable failed: {}", e);
+            return;
+        }
+        Ok(None) => {
+            log::error!("inkscape_worker_loop: find_inkscape_executable failed: not found");
+            return;
+        }
+        Ok(Some(exe_path)) => {
+            log::info!("Inkscape executable found: {:?}", exe_path);
+        }
+    }
+    // log::warn!("inkscape_worker_loop: {:?}", find_exe_result);
     // let run_inkscape_future = Fuse::terminated();
     // pin_mut!(run_inkscape_future);
     loop {
@@ -214,14 +229,23 @@ async fn inkscape_worker_loop(
     }
 }
 
+pub async fn find_inkscape_executable() -> Option<PathBuf> {
+    // Search for inkscape on the PATH
+    env::var_os("PATH").and_then(|paths| {
+        env::split_paths(&paths).filter_map(|dir| {
+            let abs_path = dir.join("inkscape");
+            log::debug!("searching: {}", abs_path.display());
+            if abs_path.exists() || abs_path.with_extension("exe").exists() {
+                Some(abs_path)
+            } else {
+                None
+            }
+        }).next()
+    })
+}
+
 async fn run_inkscape(handle: slint::Weak<AppUI>) {
     let args = InkscapeArgsBuilder::new();
-    // let mut cmd = Command::new("inkscape");
-    // cmd.arg("--export-type=png");
-    // cmd.arg(args.file_path_input.as_ref().unwrap());
-    // cmd.arg("--export-filename=test.png");
-    // let _ = cmd.spawn();
-    // let _ = cmd.wait();
     let cmd = InkscapeCmd::new(Path::new("inkscape").into(), args.build());
     cmd.exec();
 }

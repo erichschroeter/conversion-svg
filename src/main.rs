@@ -6,7 +6,7 @@ mod generated_code {
     slint::include_modules!();
 }
 pub use generated_code::*;
-use inkscape::InkscapeArgsBuilder;
+use inkscape::{find_inkscape_executable, InkscapeArgsBuilder};
 
 // fn main() -> Result<(), slint::PlatformError> {
 fn main() {
