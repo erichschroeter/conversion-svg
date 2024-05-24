@@ -2,7 +2,6 @@ use std::{env, path::{Path, PathBuf}};
 use regex::Regex;
 
 use super::AppUI;
-use futures::{future::{Fuse, FusedFuture, FutureExt}, pin_mut, select};
 use slint::ComponentHandle;
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
 
@@ -39,6 +38,11 @@ impl InkscapeCmd {
         let mut cmd = self.as_command();
         log::debug!("RUNNING!");
         cmd.spawn().expect("Failed to execute inkscape");
+    }
+
+    pub fn dryrun(&self) {
+        let cmd = self.as_command();
+        log::info!("DRYRUN: {} {:?}", cmd.get_program().to_str().unwrap_or_default(), cmd.get_args());
     }
 }
 
@@ -238,10 +242,11 @@ pub async fn find_inkscape_executable() -> Option<PathBuf> {
     })
 }
 
-async fn run_inkscape(handle: slint::Weak<AppUI>) {
+async fn run_inkscape(_handle: slint::Weak<AppUI>) {
     let args = InkscapeArgsBuilder::new();
     let cmd = InkscapeCmd::new(Path::new("inkscape").into(), args.build());
-    cmd.exec();
+    // cmd.exec();
+    cmd.dryrun();
 }
 
 #[cfg(test)]
