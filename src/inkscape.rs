@@ -1,5 +1,8 @@
-use std::{env, path::{Path, PathBuf}};
 use regex::Regex;
+use std::{
+    env,
+    path::{Path, PathBuf},
+};
 
 use super::AppUI;
 use slint::ComponentHandle;
@@ -18,12 +21,16 @@ impl InkscapeCmd {
 
     pub fn as_command(&self) -> std::process::Command {
         let mut cmd = std::process::Command::new(&self.exe_path);
-        match (self.args.export_png, self.args.export_pdf, self.args.export_eps) {
-            (true, true, true)   => cmd.arg("--export-type=png,pdf,eps"),
-            (true, true, false)  => cmd.arg("--export-type=png,pdf"),
-            (true, false, true)  => cmd.arg("--export-type=png,eps"),
+        match (
+            self.args.export_png,
+            self.args.export_pdf,
+            self.args.export_eps,
+        ) {
+            (true, true, true) => cmd.arg("--export-type=png,pdf,eps"),
+            (true, true, false) => cmd.arg("--export-type=png,pdf"),
+            (true, false, true) => cmd.arg("--export-type=png,eps"),
             (true, false, false) => cmd.arg("--export-type=png"),
-            (false, true, true)  => cmd.arg("--export-type=pdf,eps"),
+            (false, true, true) => cmd.arg("--export-type=pdf,eps"),
             (false, true, false) => cmd.arg("--export-type=pdf"),
             (false, false, true) => cmd.arg("--export-type=eps"),
             (false, false, false) => cmd.arg(""),
@@ -42,7 +49,11 @@ impl InkscapeCmd {
 
     pub fn dryrun(&self) {
         let cmd = self.as_command();
-        log::info!("DRYRUN: {} {:?}", cmd.get_program().to_str().unwrap_or_default(), cmd.get_args());
+        log::info!(
+            "DRYRUN: {} {:?}",
+            cmd.get_program().to_str().unwrap_or_default(),
+            cmd.get_args()
+        );
     }
 }
 
@@ -50,7 +61,10 @@ impl From<std::process::Command> for InkscapeCmd {
     fn from(cmd: std::process::Command) -> Self {
         let exe_path = cmd.get_program().to_owned();
         let args = cmd.get_args().into();
-        Self { exe_path: exe_path.into(), args }
+        Self {
+            exe_path: exe_path.into(),
+            args,
+        }
     }
 }
 
@@ -133,7 +147,7 @@ impl InkscapeArgsBuilder {
         InkscapeArgsBuilder::default()
     }
 
-    pub fn input_file(mut self, file_path_input: &str) -> Self {
+    pub fn input_file(&mut self, file_path_input: &str) -> &mut Self {
         self.cmd.file_path_input = Some(file_path_input.to_owned());
         self
     }
@@ -215,14 +229,15 @@ async fn inkscape_worker_loop(
         match m {
             None => return,
             Some(InkscapeMessage::Export) => {
-                println!("Exporting...");
+                log::trace!("inkscape_worker_loop: Export");
                 let _inkscape_handle = tokio::task::spawn(run_inkscape(handle.clone()));
                 // return;
-            },
+            }
             Some(InkscapeMessage::Quit) => {
+                log::trace!("inkscape_worker_loop: Quit");
                 // inkscape_handle.abort();
                 return;
-            },
+            }
         }
     }
 }
@@ -230,21 +245,37 @@ async fn inkscape_worker_loop(
 pub async fn find_inkscape_executable() -> Option<PathBuf> {
     // Search for inkscape on the PATH
     env::var_os("PATH").and_then(|paths| {
-        env::split_paths(&paths).filter_map(|dir| {
-            let abs_path = dir.join("inkscape");
-            log::debug!("searching: {}", abs_path.display());
-            if abs_path.exists() || abs_path.with_extension("exe").exists() {
-                Some(abs_path)
-            } else {
-                None
-            }
-        }).next()
+        env::split_paths(&paths)
+            .filter_map(|dir| {
+                let abs_path = dir.join("inkscape");
+                log::debug!("searching: {}", abs_path.display());
+                if abs_path.exists() || abs_path.with_extension("exe").exists() {
+                    Some(abs_path)
+                } else {
+                    None
+                }
+            })
+            .next()
     })
 }
 
-async fn run_inkscape(_handle: slint::Weak<AppUI>) {
-    let args = InkscapeArgsBuilder::new();
-    let cmd = InkscapeCmd::new(Path::new("inkscape").into(), args.build());
+impl From<AppUI> for InkscapeArgs {
+    fn from(ui: AppUI) -> Self {
+        InkscapeArgsBuilder::new()
+            .png(ui.get_export_png())
+            .pdf(ui.get_export_pdf())
+            .eps(ui.get_export_eps())
+            .input_file("C:\\Users\\erich\\Desktop\\test.svg")
+            .build()
+    }
+}
+
+async fn run_inkscape(handle: slint::Weak<AppUI>) {
+    // let args = InkscapeArgsBuilder::new();
+    // TODO build InkscapeArgs from the AppUI args.
+    let args: InkscapeArgs = handle.upgrade().unwrap().into();
+    let cmd = InkscapeCmd::new(Path::new("inkscape").into(), args);
+    // let cmd = InkscapeCmd::new(Path::new("inkscape").into(), args.build());
     // cmd.exec();
     cmd.dryrun();
 }
