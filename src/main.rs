@@ -14,8 +14,8 @@ fn main() {
     let ui = AppUI::new().unwrap();
     let inkscape_worker = inkscape::InkscapeWorker::new(&ui);
 
-    let mut inkscape_cmd: InkscapeArgsBuilder = ui.into();
-    // let mut inkscape_cmd = InkscapeArgsBuilder::new();
+    // let mut inkscape_cmd: InkscapeArgsBuilder = ui.into();
+    let inkscape_cmd = InkscapeArgsBuilder::new();
     // inkscape_cmd.png(ui.get_export_png()).pdf(ui.get_export_pdf()).eps(ui.get_export_eps());
     let cmd_arc = Arc::new(Mutex::new(inkscape_cmd));
 
@@ -24,6 +24,14 @@ fn main() {
         move |enabled| {
             let mut inkscape_args = inkscape_args.lock().unwrap();
             let z = &inkscape_args.png(enabled);
+            log::debug!("{:?}", z);
+        }
+    });
+    ui.on_toggle_export_pdf({
+        let inkscape_args = cmd_arc.clone();
+        move |enabled| {
+            let mut inkscape_args = inkscape_args.lock().unwrap();
+            let z = &inkscape_args.pdf(enabled);
             log::debug!("{:?}", z);
         }
     });
@@ -45,8 +53,8 @@ fn main() {
                 Some(folder) => folder.display().to_string().into(),
                 None => "".into(),
             };
-            ui.set_output_dir(folder);
             log::trace!("on_show_folder_dialog: selected '{:?}'", folder);
+            ui.set_output_dir(folder);
         }
     });
     ui.on_execute_inkscape({

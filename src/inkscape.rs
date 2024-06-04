@@ -273,7 +273,8 @@ impl From<AppUI> for InkscapeArgs {
 async fn run_inkscape(handle: slint::Weak<AppUI>) {
     // let args = InkscapeArgsBuilder::new();
     // TODO build InkscapeArgs from the AppUI args.
-    let args: InkscapeArgs = handle.upgrade().unwrap().into();
+    // let args: InkscapeArgs = handle.upgrade().unwrap().into();
+    let args = InkscapeArgs::default();
     let cmd = InkscapeCmd::new(Path::new("inkscape").into(), args);
     // let cmd = InkscapeCmd::new(Path::new("inkscape").into(), args.build());
     // cmd.exec();
